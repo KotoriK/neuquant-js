@@ -3,8 +3,13 @@
   "description": "NeuQuant neural-network image quantization algorithm.",
   "version": "0.2.1",
   "license": "MIT",
-  "main": "src/helpers.js",
-  "files":["src/*"],
+  "source": "src/helpers.js",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
   "repository": {
     "type": "git",
     "url": "git://github.com/unindented/neuquant-js.git"
