@@ -23,8 +23,7 @@
     "build:lib": "babel src --out-dir .",
     "build:dev": "webpack --config webpack.config.development.js",
     "build:prod": "webpack --config webpack.config.production.js",
-    "build": "npm run build:lib && npm run build:dev && npm run build:prod",
-    "prepublish": "npm run clean && npm run build"
+    "build": "npm run build:lib && npm run build:dev && npm run build:prod"
   },
   "devDependencies": {
     "babel-cli": "^6.5.1",
