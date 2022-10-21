@@ -4,8 +4,9 @@
   "version": "0.2.1",
   "license": "MIT",
   "source": "src/helpers.js",
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "type": "module",
   "files": [
     "dist"
   ],
