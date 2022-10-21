@@ -29,7 +29,7 @@ export function palette (pixels, options) {
 }
 
 export function indexed (pixels, palette) {
-  const indexed = new Buffer(pixels.length / 3)
+  const indexed = []/* new Buffer(pixels.length / 3) */
   const memo = {}
 
   for (let i = 0, j = 0, l = pixels.length; i < l;) {
