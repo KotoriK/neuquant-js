@@ -1,2 +1,314 @@
-const t=3*Math.max(499,491,487,503),i={ncycles:100,netsize:256,samplefac:10};class s{constructor(t,s){if(function(t){for(let i=1,s=arguments.length;i<s;i++){const s=arguments[i];if(null!=s)for(const i in s)Object.prototype.hasOwnProperty.call(s,i)&&(t[i]=s[i])}}(this,i,{pixels:t},s),this.netsize<4||this.netsize>256)throw new Error("Color count must be between 4 and 256");if(this.samplefac<1||this.samplefac>30)throw new Error("Sampling factor must be between 1 and 30");this.maxnetpos=this.netsize-1,this.netbiasshift=4,this.intbiasshift=16,this.intbias=1<<this.intbiasshift,this.gammashift=10,this.gamma=1<<this.gammashift,this.betashift=10,this.beta=this.intbias>>this.betashift,this.betagamma=this.beta*this.gamma,this.initrad=this.netsize>>3,this.radiusbiasshift=6,this.radiusbias=1<<this.radiusbiasshift,this.initradius=this.initrad*this.radiusbias,this.radiusdec=30,this.alphabiasshift=10,this.initalpha=1<<this.alphabiasshift,this.radbiasshift=8,this.radbias=1<<this.radbiasshift,this.alpharadbshift=this.alphabiasshift+this.radbiasshift,this.alpharadbias=1<<this.alpharadbshift,this.network=[],this.netindex=new Uint32Array(256),this.bias=new Uint32Array(this.netsize),this.freq=new Uint32Array(this.netsize),this.radpower=new Uint32Array(this.netsize>>3);for(let t=0,i=this.netsize;t<i;t++){let i=(t<<this.netbiasshift+8)/this.netsize;this.network[t]=new Float64Array([i,i,i,0]),this.freq[t]=this.intbias/this.netsize,this.bias[t]=0}}unbiasnet(){for(let t=0,i=this.netsize;t<i;t++)this.network[t][0]>>=this.netbiasshift,this.network[t][1]>>=this.netbiasshift,this.network[t][2]>>=this.netbiasshift,this.network[t][3]=t}altersingle(t,i,s,h,e){this.network[i][0]-=t*(this.network[i][0]-s)/this.initalpha,this.network[i][1]-=t*(this.network[i][1]-h)/this.initalpha,this.network[i][2]-=t*(this.network[i][2]-e)/this.initalpha}alterneigh(t,i,s,h,e){const a=Math.abs(i-t),n=Math.min(i+t,this.netsize);let r=i+1,o=i-1,l=1;for(;r<n||o>a;){const t=this.radpower[l++];if(r<n){const i=this.network[r++];i[0]-=t*(i[0]-s)/this.alpharadbias,i[1]-=t*(i[1]-h)/this.alpharadbias,i[2]-=t*(i[2]-e)/this.alpharadbias}if(o>a){const i=this.network[o--];i[0]-=t*(i[0]-s)/this.alpharadbias,i[1]-=t*(i[1]-h)/this.alpharadbias,i[2]-=t*(i[2]-e)/this.alpharadbias}}}contest(t,i,s){let h=~(1<<31),e=h,a=-1,n=a;for(let r=0,o=this.netsize;r<o;r++){let o=this.network[r],l=Math.abs(o[0]-t)+Math.abs(o[1]-i)+Math.abs(o[2]-s);l<h&&(h=l,a=r);let f=l-(this.bias[r]>>this.intbiasshift-this.netbiasshift);f<e&&(e=f,n=r);let b=this.freq[r]>>this.betashift;this.freq[r]-=b,this.bias[r]+=b<<this.gammashift}return this.freq[a]+=this.beta,this.bias[a]-=this.betagamma,n}inxbuild(){let t=0,i=0;for(let s=0,h=this.netsize;s<h;s++){let e=this.network[s],a=null,n=s,r=e[1];for(let t=s+1;t<h;t++)a=this.network[t],a[1]<r&&(n=t,r=a[1]);if(a=this.network[n],s!==n&&([e[0],a[0]]=[a[0],e[0]],[e[1],a[1]]=[a[1],e[1]],[e[2],a[2]]=[a[2],e[2]],[e[3],a[3]]=[a[3],e[3]]),r!==t){this.netindex[t]=i+s>>1;for(let i=t+1;i<r;i++)this.netindex[i]=s;t=r,i=s}}this.netindex[t]=i+this.maxnetpos>>1;for(let i=t+1;i<256;i++)this.netindex[i]=this.maxnetpos}learn(){const i=this.pixels.length,s=30+(this.samplefac-1)/3,h=i/(3*this.samplefac);let e,a=h/this.ncycles|0,n=this.initalpha,r=this.initradius,o=r>>this.radiusbiasshift;o<=1&&(o=0);for(let t=0;t<o;t++)this.radpower[t]=n*((o*o-t*t)*this.radbias/(o*o));i<t?(this.samplefac=1,e=3):e=i%499!=0?1497:i%491!=0?1473:i%487!=0?1461:1509;let l=0;for(let t=0;t<h;){let h=(255&this.pixels[l])<<this.netbiasshift,f=(255&this.pixels[l+1])<<this.netbiasshift,b=(255&this.pixels[l+2])<<this.netbiasshift,d=this.contest(h,f,b);if(this.altersingle(n,d,h,f,b),0!==o&&this.alterneigh(o,d,h,f,b),l+=e,l>=i&&(l-=i),0===a&&(a=1),++t%a==0){n-=n/s,r-=r/this.radiusdec,o=r>>this.radiusbiasshift,o<=1&&(o=0);for(let t=0;t<o;t++)this.radpower[t]=n*((o*o-t*t)*this.radbias/(o*o))}}}buildColorMap(){this.learn(),this.unbiasnet(),this.inxbuild()}getColorMap(){const t=new Buffer(3*this.netsize),i=new Buffer(this.netsize);for(let t=0,s=this.netsize;t<s;t++)i[this.network[t][3]]=t;for(let s=0,h=0,e=0,a=this.netsize;s<a;s++)e=i[s],t[h++]=255&this.network[e][0],t[h++]=255&this.network[e][1],t[h++]=255&this.network[e][2];return t}}function h(t,i,s,h){let e=0,a=16777216;for(let n=0,r=t.length;n<r;){const r=i-t[n++],o=s-t[n++],l=h-t[n],f=r*r+o*o+l*l,b=n/3|0;f<a&&(a=f,e=b),n++}return e}function e(t,i){const h=new s(t,i);return h.buildColorMap(),h.getColorMap()}function a(t,i){const s=new Buffer(t.length/3),e={};for(let a=0,n=0,r=t.length;a<r;){const r=t[a++],o=t[a++],l=t[a++],f=r<<16|o<<8|l;s[n++]=f in e?e[f]:e[f]=h(i,r,o,l)}return s}function n(t,i){const s=e(t,i);return{palette:s,indexed:a(t,s)}}export{a as indexed,e as palette,n as quantize};
+/**
+ * NeuQuant Neural-Network Quantization Algorithm
+ *
+ * Copyright (c) 1994 Anthony Dekker
+ *
+ * See "Kohonen neural networks for optimal colour quantization" in "Network:
+ * Computation in Neural Systems" Vol. 5 (1994) pp 351-367. for a discussion of
+ * the algorithm.
+ *
+ * See also http://members.ozemail.com.au/~dekker/NEUQUANT.HTML
+ *
+ * Any party obtaining a copy of these files from the author, directly or
+ * indirectly, is granted, free of charge, a full and unrestricted irrevocable,
+ * world-wide, paid up, royalty-free, nonexclusive right and license to deal in
+ * this software and documentation files (the "Software"), including without
+ * limitation the rights to use, copy, modify, merge, publish, distribute,
+ * sublicense, and/or sell copies of the Software, and to permit persons who
+ * receive copies from any such party to do so, with the only requirement being
+ * that this copyright notice remain intact.
+ *
+ * Copyright (c) 2012 Johan Nordberg (JavaScript port)
+ * Copyright (c) 2014 Devon Govett (JavaScript port)
+ */
+
+const prime1 = 499;
+const prime2 = 491;
+const prime3 = 487;
+const prime4 = 503;
+const maxprime = Math.max(prime1, prime2, prime3, prime4);
+const minpicturebytes = 3 * maxprime;
+const defaults = {
+  ncycles: 100,
+  netsize: 256,
+  samplefac: 10
+};
+const assign = function assign(target) {
+  for (let i = 1, l = arguments.length; i < l; i++) {
+    const nextSource = arguments[i];
+    if (nextSource != null) {
+      for (const nextKey in nextSource) {
+        if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
+          target[nextKey] = nextSource[nextKey];
+        }
+      }
+    }
+  }
+  return target;
+};
+class NeuQuant {
+  constructor(pixels, options) {
+    assign(this, defaults, {
+      pixels
+    }, options);
+    if (this.netsize < 4 || this.netsize > 256) {
+      throw new Error('Color count must be between 4 and 256');
+    }
+    if (this.samplefac < 1 || this.samplefac > 30) {
+      throw new Error('Sampling factor must be between 1 and 30');
+    }
+    this.maxnetpos = this.netsize - 1;
+    this.netbiasshift = 4;
+    this.intbiasshift = 16;
+    this.intbias = 1 << this.intbiasshift;
+    this.gammashift = 10;
+    this.gamma = 1 << this.gammashift;
+    this.betashift = 10;
+    this.beta = this.intbias >> this.betashift;
+    this.betagamma = this.beta * this.gamma;
+    this.initrad = this.netsize >> 3;
+    this.radiusbiasshift = 6;
+    this.radiusbias = 1 << this.radiusbiasshift;
+    this.initradius = this.initrad * this.radiusbias;
+    this.radiusdec = 30;
+    this.alphabiasshift = 10;
+    this.initalpha = 1 << this.alphabiasshift;
+    this.radbiasshift = 8;
+    this.radbias = 1 << this.radbiasshift;
+    this.alpharadbshift = this.alphabiasshift + this.radbiasshift;
+    this.alpharadbias = 1 << this.alpharadbshift;
+    this.network = [];
+    this.netindex = new Uint32Array(256);
+    this.bias = new Uint32Array(this.netsize);
+    this.freq = new Uint32Array(this.netsize);
+    this.radpower = new Uint32Array(this.netsize >> 3);
+    for (let i = 0, l = this.netsize; i < l; i++) {
+      let v = (i << this.netbiasshift + 8) / this.netsize;
+      this.network[i] = new Float64Array([v, v, v, 0]);
+      this.freq[i] = this.intbias / this.netsize;
+      this.bias[i] = 0;
+    }
+  }
+  unbiasnet() {
+    for (let i = 0, l = this.netsize; i < l; i++) {
+      this.network[i][0] >>= this.netbiasshift;
+      this.network[i][1] >>= this.netbiasshift;
+      this.network[i][2] >>= this.netbiasshift;
+      this.network[i][3] = i;
+    }
+  }
+  altersingle(alpha, i, b, g, r) {
+    this.network[i][0] -= alpha * (this.network[i][0] - b) / this.initalpha;
+    this.network[i][1] -= alpha * (this.network[i][1] - g) / this.initalpha;
+    this.network[i][2] -= alpha * (this.network[i][2] - r) / this.initalpha;
+  }
+  alterneigh(radius, i, b, g, r) {
+    const lo = Math.abs(i - radius);
+    const hi = Math.min(i + radius, this.netsize);
+    let j = i + 1;
+    let k = i - 1;
+    let m = 1;
+    while (j < hi || k > lo) {
+      const a = this.radpower[m++];
+      if (j < hi) {
+        const p = this.network[j++];
+        p[0] -= a * (p[0] - b) / this.alpharadbias;
+        p[1] -= a * (p[1] - g) / this.alpharadbias;
+        p[2] -= a * (p[2] - r) / this.alpharadbias;
+      }
+      if (k > lo) {
+        const p = this.network[k--];
+        p[0] -= a * (p[0] - b) / this.alpharadbias;
+        p[1] -= a * (p[1] - g) / this.alpharadbias;
+        p[2] -= a * (p[2] - r) / this.alpharadbias;
+      }
+    }
+  }
+  contest(b, g, r) {
+    let bestd = ~(1 << 31);
+    let bestbiasd = bestd;
+    let bestpos = -1;
+    let bestbiaspos = bestpos;
+    for (let i = 0, l = this.netsize; i < l; i++) {
+      let n = this.network[i];
+      let dist = Math.abs(n[0] - b) + Math.abs(n[1] - g) + Math.abs(n[2] - r);
+      if (dist < bestd) {
+        bestd = dist;
+        bestpos = i;
+      }
+      let biasdist = dist - (this.bias[i] >> this.intbiasshift - this.netbiasshift);
+      if (biasdist < bestbiasd) {
+        bestbiasd = biasdist;
+        bestbiaspos = i;
+      }
+      let betafreq = this.freq[i] >> this.betashift;
+      this.freq[i] -= betafreq;
+      this.bias[i] += betafreq << this.gammashift;
+    }
+    this.freq[bestpos] += this.beta;
+    this.bias[bestpos] -= this.betagamma;
+    return bestbiaspos;
+  }
+  inxbuild() {
+    let previouscol = 0;
+    let startpos = 0;
+    for (let i = 0, l = this.netsize; i < l; i++) {
+      let p = this.network[i];
+      let q = null;
+      let smallpos = i;
+      let smallval = p[1];
+      for (let j = i + 1; j < l; j++) {
+        q = this.network[j];
+        if (q[1] < smallval) {
+          smallpos = j;
+          smallval = q[1];
+        }
+      }
+      q = this.network[smallpos];
+      if (i !== smallpos) {
+        [p[0], q[0]] = [q[0], p[0]];
+        [p[1], q[1]] = [q[1], p[1]];
+        [p[2], q[2]] = [q[2], p[2]];
+        [p[3], q[3]] = [q[3], p[3]];
+      }
+      if (smallval !== previouscol) {
+        this.netindex[previouscol] = startpos + i >> 1;
+        for (let j = previouscol + 1; j < smallval; j++) {
+          this.netindex[j] = i;
+        }
+        previouscol = smallval;
+        startpos = i;
+      }
+    }
+    this.netindex[previouscol] = startpos + this.maxnetpos >> 1;
+    for (let i = previouscol + 1; i < 256; i++) {
+      this.netindex[i] = this.maxnetpos;
+    }
+  }
+  learn() {
+    const lengthcount = this.pixels.length;
+    const alphadec = 30 + (this.samplefac - 1) / 3;
+    const samplepixels = lengthcount / (3 * this.samplefac);
+    let delta = samplepixels / this.ncycles | 0;
+    let alpha = this.initalpha;
+    let radius = this.initradius;
+    let rad = radius >> this.radiusbiasshift;
+    if (rad <= 1) {
+      rad = 0;
+    }
+    for (let i = 0; i < rad; i++) {
+      this.radpower[i] = alpha * ((rad * rad - i * i) * this.radbias / (rad * rad));
+    }
+    let step;
+    if (lengthcount < minpicturebytes) {
+      this.samplefac = 1;
+      step = 3;
+    } else if (lengthcount % prime1 !== 0) {
+      step = 3 * prime1;
+    } else if (lengthcount % prime2 !== 0) {
+      step = 3 * prime2;
+    } else if (lengthcount % prime3 !== 0) {
+      step = 3 * prime3;
+    } else {
+      step = 3 * prime4;
+    }
+    let pix = 0;
+    for (let i = 0; i < samplepixels;) {
+      let b = (this.pixels[pix] & 0xff) << this.netbiasshift;
+      let g = (this.pixels[pix + 1] & 0xff) << this.netbiasshift;
+      let r = (this.pixels[pix + 2] & 0xff) << this.netbiasshift;
+      let j = this.contest(b, g, r);
+      this.altersingle(alpha, j, b, g, r);
+      if (rad !== 0) {
+        this.alterneigh(rad, j, b, g, r);
+      }
+      pix += step;
+      if (pix >= lengthcount) {
+        pix -= lengthcount;
+      }
+      if (delta === 0) {
+        delta = 1;
+      }
+      if (++i % delta === 0) {
+        alpha -= alpha / alphadec;
+        radius -= radius / this.radiusdec;
+        rad = radius >> this.radiusbiasshift;
+        if (rad <= 1) {
+          rad = 0;
+        }
+        for (let k = 0; k < rad; k++) {
+          this.radpower[k] = alpha * ((rad * rad - k * k) * this.radbias / (rad * rad));
+        }
+      }
+    }
+  }
+  buildColorMap() {
+    this.learn();
+    this.unbiasnet();
+    this.inxbuild();
+  }
+  getColorMap() {
+    const map = new Buffer(this.netsize * 3);
+    const index = new Buffer(this.netsize);
+    for (let i = 0, l = this.netsize; i < l; i++) {
+      index[this.network[i][3]] = i;
+    }
+    for (let i = 0, j = 0, k = 0, l = this.netsize; i < l; i++) {
+      k = index[i];
+      map[j++] = this.network[k][0] & 0xff;
+      map[j++] = this.network[k][1] & 0xff;
+      map[j++] = this.network[k][2] & 0xff;
+    }
+    return map;
+  }
+}
+
+function findClosest(palette, r, g, b) {
+  let minpos = 0;
+  let mind = 256 * 256 * 256;
+  for (let i = 0, l = palette.length; i < l;) {
+    const dr = r - palette[i++];
+    const dg = g - palette[i++];
+    const db = b - palette[i];
+    const d = dr * dr + dg * dg + db * db;
+    const pos = i / 3 | 0;
+    if (d < mind) {
+      mind = d;
+      minpos = pos;
+    }
+    i++;
+  }
+  return minpos;
+}
+function palette(pixels, options) {
+  const nq = new NeuQuant(pixels, options);
+  nq.buildColorMap();
+  return nq.getColorMap();
+}
+function indexed(pixels, palette) {
+  const indexed = []; /* new Buffer(pixels.length / 3) */
+  const memo = {};
+  for (let i = 0, j = 0, l = pixels.length; i < l;) {
+    const r = pixels[i++];
+    const g = pixels[i++];
+    const b = pixels[i++];
+    const k = r << 16 | g << 8 | b;
+    if (k in memo) {
+      indexed[j++] = memo[k];
+    } else {
+      indexed[j++] = memo[k] = findClosest(palette, r, g, b);
+    }
+  }
+  return indexed;
+}
+function quantize(pixels, options) {
+  const p = palette(pixels, options);
+  const i = indexed(pixels, p);
+  return {
+    palette: p,
+    indexed: i
+  };
+}
+
+export { indexed, palette, quantize };
 //# sourceMappingURL=index.modern.js.map

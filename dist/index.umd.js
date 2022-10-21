@@ -1,2 +1,333 @@
-!function(t,i){"object"==typeof exports&&"undefined"!=typeof module?i(exports):"function"==typeof define&&define.amd?define(["exports"],i):i((t||self).neuquantJs={})}(this,function(t){"use strict";var i=3*Math.max(499,491,487,503),s={ncycles:100,netsize:256,samplefac:10},a=/*#__PURE__*/function(){function t(t,i){if(function(t){for(var i=1,s=arguments.length;i<s;i++){var a=arguments[i];if(null!=a)for(var h in a)Object.prototype.hasOwnProperty.call(a,h)&&(t[h]=a[h])}}(this,s,{pixels:t},i),this.netsize<4||this.netsize>256)throw new Error("Color count must be between 4 and 256");if(this.samplefac<1||this.samplefac>30)throw new Error("Sampling factor must be between 1 and 30");this.maxnetpos=this.netsize-1,this.netbiasshift=4,this.intbiasshift=16,this.intbias=1<<this.intbiasshift,this.gammashift=10,this.gamma=1<<this.gammashift,this.betashift=10,this.beta=this.intbias>>this.betashift,this.betagamma=this.beta*this.gamma,this.initrad=this.netsize>>3,this.radiusbiasshift=6,this.radiusbias=1<<this.radiusbiasshift,this.initradius=this.initrad*this.radiusbias,this.radiusdec=30,this.alphabiasshift=10,this.initalpha=1<<this.alphabiasshift,this.radbiasshift=8,this.radbias=1<<this.radbiasshift,this.alpharadbshift=this.alphabiasshift+this.radbiasshift,this.alpharadbias=1<<this.alpharadbshift,this.network=[],this.netindex=new Uint32Array(256),this.bias=new Uint32Array(this.netsize),this.freq=new Uint32Array(this.netsize),this.radpower=new Uint32Array(this.netsize>>3);for(var a=0,h=this.netsize;a<h;a++){var e=(a<<this.netbiasshift+8)/this.netsize;this.network[a]=new Float64Array([e,e,e,0]),this.freq[a]=this.intbias/this.netsize,this.bias[a]=0}}var a=t.prototype;return a.unbiasnet=function(){for(var t=0,i=this.netsize;t<i;t++)this.network[t][0]>>=this.netbiasshift,this.network[t][1]>>=this.netbiasshift,this.network[t][2]>>=this.netbiasshift,this.network[t][3]=t},a.altersingle=function(t,i,s,a,h){this.network[i][0]-=t*(this.network[i][0]-s)/this.initalpha,this.network[i][1]-=t*(this.network[i][1]-a)/this.initalpha,this.network[i][2]-=t*(this.network[i][2]-h)/this.initalpha},a.alterneigh=function(t,i,s,a,h){for(var e=Math.abs(i-t),n=Math.min(i+t,this.netsize),r=i+1,f=i-1,o=1;r<n||f>e;){var b=this.radpower[o++];if(r<n){var l=this.network[r++];l[0]-=b*(l[0]-s)/this.alpharadbias,l[1]-=b*(l[1]-a)/this.alpharadbias,l[2]-=b*(l[2]-h)/this.alpharadbias}if(f>e){var d=this.network[f--];d[0]-=b*(d[0]-s)/this.alpharadbias,d[1]-=b*(d[1]-a)/this.alpharadbias,d[2]-=b*(d[2]-h)/this.alpharadbias}}},a.contest=function(t,i,s){for(var a=~(1<<31),h=a,e=-1,n=e,r=0,f=this.netsize;r<f;r++){var o=this.network[r],b=Math.abs(o[0]-t)+Math.abs(o[1]-i)+Math.abs(o[2]-s);b<a&&(a=b,e=r);var l=b-(this.bias[r]>>this.intbiasshift-this.netbiasshift);l<h&&(h=l,n=r);var d=this.freq[r]>>this.betashift;this.freq[r]-=d,this.bias[r]+=d<<this.gammashift}return this.freq[e]+=this.beta,this.bias[e]-=this.betagamma,n},a.inxbuild=function(){for(var t=0,i=0,s=0,a=this.netsize;s<a;s++){for(var h=this.network[s],e=null,n=s,r=h[1],f=s+1;f<a;f++)(e=this.network[f])[1]<r&&(n=f,r=e[1]);if(e=this.network[n],s!==n){var o=[e[0],h[0]];h[0]=o[0],e[0]=o[1];var b=[e[1],h[1]];h[1]=b[0],e[1]=b[1];var l=[e[2],h[2]];h[2]=l[0],e[2]=l[1];var d=[e[3],h[3]];h[3]=d[0],e[3]=d[1]}if(r!==t){this.netindex[t]=i+s>>1;for(var u=t+1;u<r;u++)this.netindex[u]=s;t=r,i=s}}this.netindex[t]=i+this.maxnetpos>>1;for(var p=t+1;p<256;p++)this.netindex[p]=this.maxnetpos},a.learn=function(){var t,s=this.pixels.length,a=30+(this.samplefac-1)/3,h=s/(3*this.samplefac),e=h/this.ncycles|0,n=this.initalpha,r=this.initradius,f=r>>this.radiusbiasshift;f<=1&&(f=0);for(var o=0;o<f;o++)this.radpower[o]=n*((f*f-o*o)*this.radbias/(f*f));s<i?(this.samplefac=1,t=3):t=s%499!=0?1497:s%491!=0?1473:s%487!=0?1461:1509;for(var b=0,l=0;l<h;){var d=(255&this.pixels[b])<<this.netbiasshift,u=(255&this.pixels[b+1])<<this.netbiasshift,p=(255&this.pixels[b+2])<<this.netbiasshift,w=this.contest(d,u,p);if(this.altersingle(n,w,d,u,p),0!==f&&this.alterneigh(f,w,d,u,p),(b+=t)>=s&&(b-=s),0===e&&(e=1),++l%e==0){n-=n/a,(f=(r-=r/this.radiusdec)>>this.radiusbiasshift)<=1&&(f=0);for(var c=0;c<f;c++)this.radpower[c]=n*((f*f-c*c)*this.radbias/(f*f))}}},a.buildColorMap=function(){this.learn(),this.unbiasnet(),this.inxbuild()},a.getColorMap=function(){for(var t=new Buffer(3*this.netsize),i=new Buffer(this.netsize),s=0,a=this.netsize;s<a;s++)i[this.network[s][3]]=s;for(var h=0,e=0,n=0,r=this.netsize;h<r;h++)t[e++]=255&this.network[n=i[h]][0],t[e++]=255&this.network[n][1],t[e++]=255&this.network[n][2];return t},t}();function h(t,i,s,a){for(var h=0,e=16777216,n=0,r=t.length;n<r;){var f=i-t[n++],o=s-t[n++],b=a-t[n],l=f*f+o*o+b*b;l<e&&(e=l,h=n/3|0),n++}return h}function e(t,i){var s=new a(t,i);return s.buildColorMap(),s.getColorMap()}function n(t,i){for(var s=new Buffer(t.length/3),a={},e=0,n=0,r=t.length;e<r;){var f=t[e++],o=t[e++],b=t[e++],l=f<<16|o<<8|b;s[n++]=l in a?a[l]:a[l]=h(i,f,o,b)}return s}t.indexed=n,t.palette=e,t.quantize=function(t,i){var s=e(t,i);return{palette:s,indexed:n(t,s)}}});
+(function (global, factory) {
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
+  typeof define === 'function' && define.amd ? define(['exports'], factory) :
+  (global = global || self, factory(global.neuquantJs = {}));
+})(this, (function (exports) {
+  /**
+   * NeuQuant Neural-Network Quantization Algorithm
+   *
+   * Copyright (c) 1994 Anthony Dekker
+   *
+   * See "Kohonen neural networks for optimal colour quantization" in "Network:
+   * Computation in Neural Systems" Vol. 5 (1994) pp 351-367. for a discussion of
+   * the algorithm.
+   *
+   * See also http://members.ozemail.com.au/~dekker/NEUQUANT.HTML
+   *
+   * Any party obtaining a copy of these files from the author, directly or
+   * indirectly, is granted, free of charge, a full and unrestricted irrevocable,
+   * world-wide, paid up, royalty-free, nonexclusive right and license to deal in
+   * this software and documentation files (the "Software"), including without
+   * limitation the rights to use, copy, modify, merge, publish, distribute,
+   * sublicense, and/or sell copies of the Software, and to permit persons who
+   * receive copies from any such party to do so, with the only requirement being
+   * that this copyright notice remain intact.
+   *
+   * Copyright (c) 2012 Johan Nordberg (JavaScript port)
+   * Copyright (c) 2014 Devon Govett (JavaScript port)
+   */
+
+  var prime1 = 499;
+  var prime2 = 491;
+  var prime3 = 487;
+  var prime4 = 503;
+  var maxprime = Math.max(prime1, prime2, prime3, prime4);
+  var minpicturebytes = 3 * maxprime;
+  var defaults = {
+    ncycles: 100,
+    netsize: 256,
+    samplefac: 10
+  };
+  var assign = function assign(target) {
+    for (var i = 1, l = arguments.length; i < l; i++) {
+      var nextSource = arguments[i];
+      if (nextSource != null) {
+        for (var nextKey in nextSource) {
+          if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
+            target[nextKey] = nextSource[nextKey];
+          }
+        }
+      }
+    }
+    return target;
+  };
+  var NeuQuant = /*#__PURE__*/function () {
+    function NeuQuant(pixels, options) {
+      assign(this, defaults, {
+        pixels: pixels
+      }, options);
+      if (this.netsize < 4 || this.netsize > 256) {
+        throw new Error('Color count must be between 4 and 256');
+      }
+      if (this.samplefac < 1 || this.samplefac > 30) {
+        throw new Error('Sampling factor must be between 1 and 30');
+      }
+      this.maxnetpos = this.netsize - 1;
+      this.netbiasshift = 4;
+      this.intbiasshift = 16;
+      this.intbias = 1 << this.intbiasshift;
+      this.gammashift = 10;
+      this.gamma = 1 << this.gammashift;
+      this.betashift = 10;
+      this.beta = this.intbias >> this.betashift;
+      this.betagamma = this.beta * this.gamma;
+      this.initrad = this.netsize >> 3;
+      this.radiusbiasshift = 6;
+      this.radiusbias = 1 << this.radiusbiasshift;
+      this.initradius = this.initrad * this.radiusbias;
+      this.radiusdec = 30;
+      this.alphabiasshift = 10;
+      this.initalpha = 1 << this.alphabiasshift;
+      this.radbiasshift = 8;
+      this.radbias = 1 << this.radbiasshift;
+      this.alpharadbshift = this.alphabiasshift + this.radbiasshift;
+      this.alpharadbias = 1 << this.alpharadbshift;
+      this.network = [];
+      this.netindex = new Uint32Array(256);
+      this.bias = new Uint32Array(this.netsize);
+      this.freq = new Uint32Array(this.netsize);
+      this.radpower = new Uint32Array(this.netsize >> 3);
+      for (var i = 0, l = this.netsize; i < l; i++) {
+        var v = (i << this.netbiasshift + 8) / this.netsize;
+        this.network[i] = new Float64Array([v, v, v, 0]);
+        this.freq[i] = this.intbias / this.netsize;
+        this.bias[i] = 0;
+      }
+    }
+    var _proto = NeuQuant.prototype;
+    _proto.unbiasnet = function unbiasnet() {
+      for (var i = 0, l = this.netsize; i < l; i++) {
+        this.network[i][0] >>= this.netbiasshift;
+        this.network[i][1] >>= this.netbiasshift;
+        this.network[i][2] >>= this.netbiasshift;
+        this.network[i][3] = i;
+      }
+    };
+    _proto.altersingle = function altersingle(alpha, i, b, g, r) {
+      this.network[i][0] -= alpha * (this.network[i][0] - b) / this.initalpha;
+      this.network[i][1] -= alpha * (this.network[i][1] - g) / this.initalpha;
+      this.network[i][2] -= alpha * (this.network[i][2] - r) / this.initalpha;
+    };
+    _proto.alterneigh = function alterneigh(radius, i, b, g, r) {
+      var lo = Math.abs(i - radius);
+      var hi = Math.min(i + radius, this.netsize);
+      var j = i + 1;
+      var k = i - 1;
+      var m = 1;
+      while (j < hi || k > lo) {
+        var a = this.radpower[m++];
+        if (j < hi) {
+          var p = this.network[j++];
+          p[0] -= a * (p[0] - b) / this.alpharadbias;
+          p[1] -= a * (p[1] - g) / this.alpharadbias;
+          p[2] -= a * (p[2] - r) / this.alpharadbias;
+        }
+        if (k > lo) {
+          var _p = this.network[k--];
+          _p[0] -= a * (_p[0] - b) / this.alpharadbias;
+          _p[1] -= a * (_p[1] - g) / this.alpharadbias;
+          _p[2] -= a * (_p[2] - r) / this.alpharadbias;
+        }
+      }
+    };
+    _proto.contest = function contest(b, g, r) {
+      var bestd = ~(1 << 31);
+      var bestbiasd = bestd;
+      var bestpos = -1;
+      var bestbiaspos = bestpos;
+      for (var i = 0, l = this.netsize; i < l; i++) {
+        var n = this.network[i];
+        var dist = Math.abs(n[0] - b) + Math.abs(n[1] - g) + Math.abs(n[2] - r);
+        if (dist < bestd) {
+          bestd = dist;
+          bestpos = i;
+        }
+        var biasdist = dist - (this.bias[i] >> this.intbiasshift - this.netbiasshift);
+        if (biasdist < bestbiasd) {
+          bestbiasd = biasdist;
+          bestbiaspos = i;
+        }
+        var betafreq = this.freq[i] >> this.betashift;
+        this.freq[i] -= betafreq;
+        this.bias[i] += betafreq << this.gammashift;
+      }
+      this.freq[bestpos] += this.beta;
+      this.bias[bestpos] -= this.betagamma;
+      return bestbiaspos;
+    };
+    _proto.inxbuild = function inxbuild() {
+      var previouscol = 0;
+      var startpos = 0;
+      for (var i = 0, l = this.netsize; i < l; i++) {
+        var p = this.network[i];
+        var q = null;
+        var smallpos = i;
+        var smallval = p[1];
+        for (var j = i + 1; j < l; j++) {
+          q = this.network[j];
+          if (q[1] < smallval) {
+            smallpos = j;
+            smallval = q[1];
+          }
+        }
+        q = this.network[smallpos];
+        if (i !== smallpos) {
+          var _ref = [q[0], p[0]];
+          p[0] = _ref[0];
+          q[0] = _ref[1];
+          var _ref2 = [q[1], p[1]];
+          p[1] = _ref2[0];
+          q[1] = _ref2[1];
+          var _ref3 = [q[2], p[2]];
+          p[2] = _ref3[0];
+          q[2] = _ref3[1];
+          var _ref4 = [q[3], p[3]];
+          p[3] = _ref4[0];
+          q[3] = _ref4[1];
+        }
+        if (smallval !== previouscol) {
+          this.netindex[previouscol] = startpos + i >> 1;
+          for (var _j = previouscol + 1; _j < smallval; _j++) {
+            this.netindex[_j] = i;
+          }
+          previouscol = smallval;
+          startpos = i;
+        }
+      }
+      this.netindex[previouscol] = startpos + this.maxnetpos >> 1;
+      for (var _i = previouscol + 1; _i < 256; _i++) {
+        this.netindex[_i] = this.maxnetpos;
+      }
+    };
+    _proto.learn = function learn() {
+      var lengthcount = this.pixels.length;
+      var alphadec = 30 + (this.samplefac - 1) / 3;
+      var samplepixels = lengthcount / (3 * this.samplefac);
+      var delta = samplepixels / this.ncycles | 0;
+      var alpha = this.initalpha;
+      var radius = this.initradius;
+      var rad = radius >> this.radiusbiasshift;
+      if (rad <= 1) {
+        rad = 0;
+      }
+      for (var i = 0; i < rad; i++) {
+        this.radpower[i] = alpha * ((rad * rad - i * i) * this.radbias / (rad * rad));
+      }
+      var step;
+      if (lengthcount < minpicturebytes) {
+        this.samplefac = 1;
+        step = 3;
+      } else if (lengthcount % prime1 !== 0) {
+        step = 3 * prime1;
+      } else if (lengthcount % prime2 !== 0) {
+        step = 3 * prime2;
+      } else if (lengthcount % prime3 !== 0) {
+        step = 3 * prime3;
+      } else {
+        step = 3 * prime4;
+      }
+      var pix = 0;
+      for (var _i2 = 0; _i2 < samplepixels;) {
+        var b = (this.pixels[pix] & 0xff) << this.netbiasshift;
+        var g = (this.pixels[pix + 1] & 0xff) << this.netbiasshift;
+        var r = (this.pixels[pix + 2] & 0xff) << this.netbiasshift;
+        var j = this.contest(b, g, r);
+        this.altersingle(alpha, j, b, g, r);
+        if (rad !== 0) {
+          this.alterneigh(rad, j, b, g, r);
+        }
+        pix += step;
+        if (pix >= lengthcount) {
+          pix -= lengthcount;
+        }
+        if (delta === 0) {
+          delta = 1;
+        }
+        if (++_i2 % delta === 0) {
+          alpha -= alpha / alphadec;
+          radius -= radius / this.radiusdec;
+          rad = radius >> this.radiusbiasshift;
+          if (rad <= 1) {
+            rad = 0;
+          }
+          for (var k = 0; k < rad; k++) {
+            this.radpower[k] = alpha * ((rad * rad - k * k) * this.radbias / (rad * rad));
+          }
+        }
+      }
+    };
+    _proto.buildColorMap = function buildColorMap() {
+      this.learn();
+      this.unbiasnet();
+      this.inxbuild();
+    };
+    _proto.getColorMap = function getColorMap() {
+      var map = new Buffer(this.netsize * 3);
+      var index = new Buffer(this.netsize);
+      for (var i = 0, l = this.netsize; i < l; i++) {
+        index[this.network[i][3]] = i;
+      }
+      for (var _i3 = 0, j = 0, k = 0, _l = this.netsize; _i3 < _l; _i3++) {
+        k = index[_i3];
+        map[j++] = this.network[k][0] & 0xff;
+        map[j++] = this.network[k][1] & 0xff;
+        map[j++] = this.network[k][2] & 0xff;
+      }
+      return map;
+    };
+    return NeuQuant;
+  }();
+
+  function findClosest(palette, r, g, b) {
+    var minpos = 0;
+    var mind = 256 * 256 * 256;
+    for (var i = 0, l = palette.length; i < l;) {
+      var dr = r - palette[i++];
+      var dg = g - palette[i++];
+      var db = b - palette[i];
+      var d = dr * dr + dg * dg + db * db;
+      var pos = i / 3 | 0;
+      if (d < mind) {
+        mind = d;
+        minpos = pos;
+      }
+      i++;
+    }
+    return minpos;
+  }
+  function palette(pixels, options) {
+    var nq = new NeuQuant(pixels, options);
+    nq.buildColorMap();
+    return nq.getColorMap();
+  }
+  function indexed(pixels, palette) {
+    var indexed = []; /* new Buffer(pixels.length / 3) */
+    var memo = {};
+    for (var i = 0, j = 0, l = pixels.length; i < l;) {
+      var r = pixels[i++];
+      var g = pixels[i++];
+      var b = pixels[i++];
+      var k = r << 16 | g << 8 | b;
+      if (k in memo) {
+        indexed[j++] = memo[k];
+      } else {
+        indexed[j++] = memo[k] = findClosest(palette, r, g, b);
+      }
+    }
+    return indexed;
+  }
+  function quantize(pixels, options) {
+    var p = palette(pixels, options);
+    var i = indexed(pixels, p);
+    return {
+      palette: p,
+      indexed: i
+    };
+  }
+
+  exports.indexed = indexed;
+  exports.palette = palette;
+  exports.quantize = quantize;
+
+}));
 //# sourceMappingURL=index.umd.js.map

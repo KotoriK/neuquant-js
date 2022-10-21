@@ -296,7 +296,7 @@ function palette(pixels, options) {
   return nq.getColorMap();
 }
 function indexed(pixels, palette) {
-  var indexed = []; /* new Buffer(pixels.length / 3) */
+  var indexed = new Buffer(pixels.length / 3);
   var memo = {};
   for (var i = 0, j = 0, l = pixels.length; i < l;) {
     var r = pixels[i++];
@@ -320,7 +320,5 @@ function quantize(pixels, options) {
   };
 }
 
-exports.indexed = indexed;
-exports.palette = palette;
-exports.quantize = quantize;
-//# sourceMappingURL=index.cjs.map
+export { indexed, palette, quantize };
+//# sourceMappingURL=index.mjs.map
