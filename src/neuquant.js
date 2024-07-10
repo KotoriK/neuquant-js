@@ -295,8 +295,8 @@ export default class NeuQuant {
   }
 
   getColorMap () {
-    const map = new Buffer(this.netsize * 3)
-    const index = new Buffer(this.netsize)
+    const map = new Uint8Array(this.netsize * 3)
+    const index = new Uint8Array(this.netsize)
 
     for (let i = 0, l = this.netsize; i < l; i++) {
       index[this.network[i][3]] = i
