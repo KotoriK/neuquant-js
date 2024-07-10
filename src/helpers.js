@@ -1,4 +1,4 @@
-import NeuQuant from './neuquant'
+import NeuQuant from './neuquant.js'
 
 function findClosest (palette, r, g, b) {
   let minpos = 0

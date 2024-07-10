@@ -1,3 +1,3 @@
-export {palette, indexed, quantize} from './helpers'
-export {default as NeuQuant} from './neuquant'
-export {default as Stream} from './stream'
+export {palette, indexed, quantize} from './helpers.js'
+export {default as NeuQuant} from './neuquant.js'
+export {default as Stream} from './stream.js'

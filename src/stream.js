@@ -1,4 +1,4 @@
-import {quantize} from './helpers'
+import {quantize} from './helpers.js'
 import PixelStream from 'pixel-stream'
 
 export default class NeuQuantStream extends PixelStream {
